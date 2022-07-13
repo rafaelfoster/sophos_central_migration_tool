@@ -1,0 +1,3 @@
+config/credentials.ini
+jobs/*
+test.py
