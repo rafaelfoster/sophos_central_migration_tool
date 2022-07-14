@@ -30,7 +30,7 @@ This tool contains the main options:
 * *-h*: show help message 
 * *-l/--list-jobs*: List all jobs created on Destination tenant
 * *-s/--status*: Get status from a specific job ID
-* *-e/--endpoint-file*: This option will generate a list of all endpoint in "Jobs" folder. This json file could be modified in order to define only the endpoints that should be migrated. After editing this file, you can run the script again with no arguments to create a job with the new endpoints list.
+* *-e/--endpoint-file*: This option will generate a list of all endpoints in "Jobs" folder. This json file could be modified in order to define only the endpoints that should be migrated. After editing this file, you can run the script again with no arguments to create a job with the new endpoints list.
 
 If none of these options have been passed on the command line, it will run the migration on all endpoints in source tenant.
 
