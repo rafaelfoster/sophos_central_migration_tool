@@ -22,16 +22,20 @@ class Migration(object):
             res = requests.post(migration_url, headers=headers, json=migrate_json)
             res_code = res.status_code
             res_data = res.json()
+            print("[*] - HTTP Return code: %d" % (res_code))
         
-        except requests.exceptions.RequestException as res_exception:
+        except requests.exceptions.HTTPError :
+          pass
+
+        if res_code > 201:
             res_users_error_code = res_data['error']
-            print("[*] - Error on creating this Job")
+            print("\n[*] - Error on creating this Job")
             print("ERROR_CODE: %d" % (res_code))
             print("Error message: %s" % (res_users_error_code))
-            print("******************************\n\n")
-            return res_users_error_code
+            print("******************************")
+            return False
 
-        if res_code == 201 or res_code == 200:
+        elif res_code == 201 or res_code == 200:
 
             print("[*] - Job created. ID: %s" % (res_data['id']))
 
