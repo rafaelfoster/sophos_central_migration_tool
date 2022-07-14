@@ -14,8 +14,9 @@ After downloading this tool, use pip for installing dependencies using the follo
 
 ## How do I use Sophos Central Migration Tool?
 
-First of all, rename the credentials.ini.default to credentials.ini.
-Create credentials Client ID and Client SECRET for both, source and destination Central instances, and define it on credentials.ini file.
+First of all, rename the **credentials.ini.default** to **credentials.ini**.
+Create credentials Client ID and Client SECRET for both, **source** and **destination** Central instances, and define it on credentials.ini file.
+
 Credentials keys should be created with "Service Principal Super Admin" rights, otherwise you'll get a "Forbidden" message as a return.
 
 Use this documentation for learning how to get these credentials.
