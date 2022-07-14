@@ -1,3 +1,5 @@
+import os
+import json
 import requests
 from mwt import mwt
 
@@ -10,8 +12,45 @@ class Endpoint(object):
 
     def setHeaders(self, headers):
         self.headers = headers
+    
+    def generate_ep_file(self, tenant_headers, endpoints_url):
+        print("[*] - Generating a list of endpoints from Central...")
+        endpoints_list, endpoints_ids = self.fetch_all_endpoints(tenant_headers, endpoints_url)
 
-    def get_all(self, tenant_headers, endpoints_url):
+        endpoints_file = "./jobs/%s_endpoints.json" % (tenant_headers['X-Tenant-ID'])
+
+        try:
+            os.mkdir("./jobs")
+        except:
+            pass 
+        
+        try:
+            with open(endpoints_file, 'w') as outfile:
+                json.dump(endpoints_list, outfile, indent=4)
+
+        except IOError:
+            print("[*] - Error while creating endpoints file.")
+
+        print("[*] - List of endpoints generated to file: {EP_FILE}".format(EP_FILE=endpoints_file))
+
+    def get_all(self, tenant_headers, endpoints_url, use_generated_file = True):
+        
+        endpoints_file = "./jobs/%s_endpoints.json" % (tenant_headers['X-Tenant-ID'])
+        if endpoints_file and use_generated_file:
+            print("[*] - Using previously generated file: %s" % (endpoints_file))
+            with open(endpoints_file) as json_file:
+                endpoints_json = json.load(json_file)
+                endpoints_ids  = []
+                for endpoint in endpoints_json:
+                    endpoints_ids.append(endpoint['id'])
+            return endpoints_json, endpoints_ids, "from_file"
+        
+        print("[*] - Fetching endpoints from Sophos Central")
+        endpoints_list, endpoints_ids = self.fetch_all_endpoints(tenant_headers, endpoints_url)
+        return  endpoints_list, endpoints_ids, "from_central"
+        
+
+    def fetch_all_endpoints(self, tenant_headers, endpoints_url):
         params_data = {}
         params_data["pageTotal"] = True
         # params_data["pageSize"]  = 2

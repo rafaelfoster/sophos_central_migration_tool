@@ -1,3 +1,6 @@
+__pycache__
+vendors/__pycache__
+config/__pycache__
 config/credentials.ini
 jobs/*
 test.py
