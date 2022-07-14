@@ -73,6 +73,8 @@ def main(args = None):
     if migration_job:
         start_migration_job = migration.start_job(source_headers, source_central_dataregion, migration_job['id'], endpoints_ids, migration_job['token'])
         print("[*] - File with Job information created at: ./jobs/%s.json" % (start_migration_job['id']) )
+    else:
+        print("\n[*] - Some error occour while creating migration job.")
 
 if __name__ == "__main__":
     print("[*] - Starting Sophos Central Migration Tool!\n")

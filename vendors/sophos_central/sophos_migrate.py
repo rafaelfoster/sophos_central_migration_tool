@@ -78,6 +78,9 @@ class Migration(object):
             migration_data = res_migration.json()
 
         except requests.exceptions.RequestException as res_exception:
+            pass
+
+        if res_migration_code > 201:
             res_migration_error_code = migration_data['error']
             print("[*] - Error on starting this Job")
             print("ERROR_CODE: %d" % (res_migration_code))
@@ -85,7 +88,7 @@ class Migration(object):
             print("******************************\n\n")
             return res_migration_error_code
 
-        if res_migration_code == 200 or res_migration_code == 201 :
+        elif res_migration_code == 200 or res_migration_code == 201 :
             print("[*] - Start job succeed!")
             return migration_data
 
