@@ -1,3 +1,6 @@
+Versão em português: [![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](https://github.com/rafaelfoster/sophos_central_migration_tool/blob/main/README.pt-br.md)
+
+
 ## What is Sophos Central Migration Tool?
 
 A tool created for users easily consume Sophos migration API: https://developer.sophos.com/docs/endpoint-v1/1/routes/migrations/get  
@@ -14,7 +17,7 @@ After downloading this tool, use pip for installing dependencies using the follo
 
 ## How do I use Sophos Central Migration Tool?
 
-First of all, rename the **credentials.ini.default** to **credentials.ini**.
+First of all, rename the credentials.ini.default to credentials.ini.
 Create credentials Client ID and Client SECRET for both, **source** and **destination** Central instances, and define it on credentials.ini file.
 
 Credentials keys should be created with "Service Principal Super Admin" rights, otherwise you'll get a "Forbidden" message as a return.
