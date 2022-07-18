@@ -119,9 +119,9 @@ class Migration(object):
         if res_migration_code > 201:
             print("[*] - Error on starting this Job")
             print("ERROR_CODE: %d" % (res_migration_code))
-            print("Error message: %s" % (res_migration_error_code))
+            print("Error message: %s" % (migration_data['error']))
             print("******************************\n\n")
-            return res_migration_error_code
+            return res_migration.status_code
         else:
             if migration_id:
                 migration_file = "./jobs/%s.json" % (migration_id)
