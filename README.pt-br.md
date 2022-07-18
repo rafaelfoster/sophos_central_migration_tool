@@ -42,4 +42,4 @@ Depois disso, você poderá obter o status de cada migração de endpoint.
 
 Você pode me enviar um e-mail para rafael (.) Foster at sophos (.) com.
 
-Apreciá-lo!
+Façam bom uso!
