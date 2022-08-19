@@ -47,7 +47,7 @@ def main(args = None):
         current = 0
         for endpoint in endpoints_list:
             if next_ep_id is endpoint['id']: continue
-            current += 1
+            #current += 1
             next_endpoint = endpoints_list[current]
             next_ep_id = next_endpoint['id']
             print("Hostname: {:<30} Hostname:{:^5}".format(endpoint['hostname'],next_endpoint['hostname']))
