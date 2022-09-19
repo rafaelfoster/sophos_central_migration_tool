@@ -79,9 +79,10 @@ class Endpoint(object):
         print("[*] - List of {TYPE}s generated in the  file: {DUMP_FILE}".format(DUMP_FILE=dump_file, TYPE=type))
         return True
 
-    def get_all_endpoints(self, tenant_headers, src_central_dataregion, use_generated_file = True):
+    def get_all_endpoints(self, headers, use_generated_file = True):
+        # def get_all_endpoints(self, tenant_headers, src_central_dataregion, use_generated_file = True):
         
-        endpoints_file = "./jobs/%s_endpoints.json" % (tenant_headers['X-Tenant-ID'])
+        endpoints_file = "./jobs/%s_endpoints.json" % (headers['source']['headers']['X-Tenant-ID'])
         
         if os.path.exists(endpoints_file) and use_generated_file:
             print("[*] - Using previously generated file: %s" % (endpoints_file))
@@ -93,10 +94,10 @@ class Endpoint(object):
             return endpoints_json, endpoints_ids, "from_file"
         else:
 
-            endpoints_url = "{DATA_REGION}/{ENDPOINTS_URI}".format(DATA_REGION=src_central_dataregion, ENDPOINTS_URI='/endpoint/v1/endpoints')    
+            endpoints_url = "{DATA_REGION}/{ENDPOINTS_URI}".format(DATA_REGION=headers['source']['region'], ENDPOINTS_URI='/endpoint/v1/endpoints')    
             
             print("[*] - Fetching endpoints from Sophos Central")
-            endpoints_list, endpoints_ids = self._fetch_all_endpoints(tenant_headers, endpoints_url)
+            endpoints_list, endpoints_ids = self._fetch_all_endpoints(headers['source']['headers'], endpoints_url)
             return  endpoints_list, endpoints_ids, "from_central"
     
     def get_all_groups(self, headers, central_dataregion, job_folder):
@@ -111,17 +112,17 @@ class Endpoint(object):
             return groups_list
 
 
-    def _fetch_all_endpoints(self, tenant_headers, endpoints_url):
+    def _fetch_all_endpoints(self, headers, endpoints_url):
         params_data = {}
         params_data["pageTotal"] = True
         # params_data["pageSize"]  = 2
         params_data["view"]      = 'basic'
 
-        def append_endpoints(endpoints_url, tenant_headers, pageKey = ""):
+        def append_endpoints(endpoints_url, headers, pageKey = ""):
             params_data["pageFromKey"] = pageKey
 
             try:
-                res_endpoints = requests.get(endpoints_url, headers=tenant_headers, params=params_data)
+                res_endpoints = requests.get(endpoints_url, headers=headers, params=params_data)
                 res_endpoints_code = res_endpoints.status_code
                 endpoints_data = res_endpoints.json()
 

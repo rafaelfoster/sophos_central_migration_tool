@@ -26,17 +26,17 @@ class CentralRequest(object):
         time_lapsed = (cur_request_time - self.request_time)
         self.requests_count += 1
 
-        print("\n[*] - Rate control. Count: %d" % (self.requests_count))
-        print("[*] - Time control: %d  - %s\n" % (time_lapsed.seconds, str(datetime.now())))
+        # print("\n[*] - Rate control. Count: %d" % (self.requests_count))
+        # print("[*] - Time control: %d  - %s\n" % (time_lapsed.seconds, str(datetime.now())))
 
         if (self.requests_count % 1000 == 0 ) and (time_lapsed.seconds <= 3600):
-            print(" ------ Waiting 60 seconds for the next request")
+            # print(" ------ Waiting 60 seconds for the next request")
             wait_seconds = 60
         elif (self.requests_count % 100 == 0) and (time_lapsed.seconds <= 60):
-            print(" ------ Waiting 20 seconds for the next request")
+            # print(" ------ Waiting 20 seconds for the next request")
             wait_seconds = 20
         elif (self.requests_count >= 9 ) and (time_lapsed.seconds <= 10):
-            print(" ------ Waiting 2 seconds for the next request")
+            # print(" ------ Waiting 2 seconds for the next request")
             wait_seconds = 2
 
         if adjust_time:
@@ -75,8 +75,8 @@ class CentralRequest(object):
             # Requesting rate limit control
             self.rate_limit_control()
 
-            # print("[*] - Starting {METHOD} request on Sophos Central...".format(METHOD=method))
-            # print("[*] - Sophos Central Tenant: {TENANT}".format(TENANT=headers['X-Tenant-ID']))
+            print("[*] - Starting {METHOD} request on Sophos Central...".format(METHOD=method))
+            print("[*] - Sophos Central Tenant: {TENANT}".format(TENANT=headers['X-Tenant-ID']))
 
             # print(json.dumps(headers, indent=4))
             # print(json.dumps(params, indent=4))

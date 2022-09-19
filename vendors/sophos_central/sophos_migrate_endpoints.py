@@ -157,18 +157,23 @@ class Migration(object):
             if status:
                 # ignored_types = ['detectedExploit', 'behavioral']
 
-                exclusion_count = 0
+                # exclusion_count = 0
 
                 for exclusion in data['items']:
-                    exclusion_dict = {
-                        "type":        exclusion['type'],
-                        "value":       exclusion['value']
-                    }
-                    if "comment" in exclusion.keys(): exclusion_dict["comment"] = exclusion['comment']
-                    if "scanmode" in exclusion.keys(): exclusion_dict["scanMode"] = exclusion['scanMode']
-                    if "description" in exclusion.keys(): exclusion_dict["description"] = exclusion['description']
+                    print("*******************")
+                    print(json.dumps(exclusion, indent=4))
+                    exclusion_dict = dict()
 
-                    send_exclusion_status, send_exclusion_data = central.insert(dst_setting_url, headers['destination']['region'], exclusion_dict)
+                    for key in exclusion.keys():
+                        if key == "id": continue
+                        exclusion_dict[key] = exclusion[key]
+                
+                    #  if "comment" in exclusion.keys(): exclusion_dict["comment"] = exclusion['comment']
+                    # if "scanmode" in exclusion.keys(): exclusion_dict["scanMode"] = exclusion['scanMode']
+                    # if "description" in exclusion.keys(): exclusion_dict["description"] = exclusion['description']
+
+                    # print(exclusion_dict)
+                    send_exclusion_status, send_exclusion_data = central.insert(dst_setting_url, headers['destination']['headers'], exclusion_dict)
                     if send_exclusion_status:
                         print("[!] - Creating exclusion for {migration_type} success!".format(migration_type=migration_type))
                     else:
@@ -263,8 +268,13 @@ class Migration(object):
                 print("[!] - Error while creating policy {POLICYNAME}".format(POLICYNAME=policy_content['name']))
 
 
-    def migrate_computer_groups(self, headers, source_computers_groups):
+    def migrate_computer_groups(self, headers):
+        print("[!] - Migrate computer groups function is current under development right now!\nPlease come back later...")
+        exit()
         print("[*] - Function: Migrate computer groups")
+
+        src_endpoints_groups_url = "{DATA_REGION}/{GROUPS_URI}".format(DATA_REGION=headers['source']['region'], GROUPS_URI="endpoint/v1/endpoint-groups")
+        groups_status, source_computers_groups = central.get(src_endpoints_groups_url, headers['source']['headers'])
 
         endpoints_groups_url = "{DATA_REGION}/{GROUPS_URI}".format(DATA_REGION=headers['destination']['region'], GROUPS_URI="endpoint/v1/endpoint-groups")
 

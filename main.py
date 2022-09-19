@@ -29,10 +29,12 @@ def create_job_folder():
     """)
 
     answer = input("[?] - Define a customer name: ")
+    print("\n")
     folder_prefix = "job"
     if len(answer) != 0:
         folder_prefix = answer
 
+    use_existing = False
     folder_created = False
     create_random = False
     while not folder_created:
@@ -41,7 +43,7 @@ def create_job_folder():
             job_folder = job_folder + "-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
         print("[*] - Checking if folder %s exists..." % (job_folder))
-        if not os.path.exists("jobs/%s" % (job_folder)):
+        if not os.path.exists("jobs/%s" % (job_folder)) or use_existing:
             try:
                 os.makedirs("jobs/%s" % (job_folder))
                 folder_created = True
@@ -50,11 +52,13 @@ def create_job_folder():
                 exit()
         else:
             print("[!] - Job folder {JOBFOLDER} already exists!".format(JOBFOLDER=job_folder))
-            answer = input("[?] - Keep defined folder name? [Yes/No] ")
+            answer = input("[?] - Keep defined folder name? [Yes/No] (Default: Yes) ")
             if any(answer.lower() == f for f in ['no', 'n', '0']):
                 create_random = True
+            else: 
+                return job_folder
 
-    print("[*] - Job folder created at: {JOBFOLDER}".format(JOBFOLDER=job_folder))
+    print("[*] - Job folder created at: {JOBFOLDER}\n".format(JOBFOLDER=job_folder))
     return job_folder
 
 def write_json(data, type, tenant_id = None):
@@ -80,11 +84,11 @@ def main(args = None):
     print("[#] - Migrate Endpoint/Server Policies:  {CONFIG_POLICIES}".format(CONFIG_POLICIES=config.get("migrate_policies")))
     print("[#] - Migrate Firewall Groups:\t\t {CONFIG_FIREWALLS}".format(CONFIG_FIREWALLS=config.get("migrate_firewall_groups")))
 
-    answer = input("\n[*] - You really want to continue? [Yes / No]: ")
+    answer = input("\n[?] - You really want to continue? [Yes / No] (Default: Yes): ")
     if any(answer.lower() == f for f in ['no', 'n', '0']):
-        print('[*] - Aborting execution!')
+        print('\n\n[!] - Aborting execution!')
         exit()
-    print("[*] - User confirmed. Continuing to create a new Migration Job.")
+    print("\n[*] - User confirmed. Continuing to create a new Migration Job.")
 
     job_folder = create_job_folder()
 
@@ -102,9 +106,9 @@ def main(args = None):
         }
     }
 
-    if config.get("migrate_exclusions"):
-        print("[*] - Migrating Exclusions as it has been set on config.ini. \n")
-        migration.migrate_exclusions(headers)
+    # if config.get("migrate_exclusions"):
+    #     print("[*] - Migrating Exclusions as it has been set on config.ini. \n")
+    #     migration.migrate_exclusions(headers)
 
     # if config.get("migrate_firewall_groups"):
     #     print("[*] - Migrating Firewall Groups as it has been set on config.ini. \n")
@@ -114,8 +118,7 @@ def main(args = None):
     if config.get("migrate_endpoints_groups"):
         print("[*] - Migrating computer groups.")
         print("[!] - Note that groups from Active Directory and Azure will not be migrated! You should run Azure/AD Sync for this.")
-        endpoints.migrate_groups(headers)
-
+        migration.migrate_computer_groups(headers)
 
     if config.get("migrate_policies"):
         print("[*] - Migrating Policies... \n")
@@ -146,12 +149,12 @@ def main(args = None):
             print("\t[1] - Migrate ALL endpoints from Central (ignore this list).")
             print("\t[2] - Abort execution.")
             
-            answer = input("\n[*] - Choose an option: ")
+            answer = input("\n[?] - Choose an option: ")
             if int(answer) == 2:
-                print('\n\n[*] - Aborting execution!')
+                print('\n\n[!] - Aborting execution!')
                 exit()
             elif int(answer) == 1: 
-                print("[*] - Migrating all endpoints from Central.")
+                print("\n[*] - Migrating all endpoints from Central.")
                 endpoints_list, endpoints_ids, source_data = endpoints.get_all_endpoints( src_headers, Endpoints_URL, False)
 
         migration_job = migration.create_job(endpoints_ids, endpoints_list, src_headers['X-Tenant-ID'], dst_header, dst_central_dataregion)
@@ -194,6 +197,6 @@ if __name__ == "__main__":
     elif args.list_jobs:
         migration.list_jobs()
     else:
-        print("[?] - No arguments passed. Starting main function.")
+        print("[*] - No arguments passed. Starting main function.")
         main()
    
