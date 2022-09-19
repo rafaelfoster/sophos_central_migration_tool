@@ -80,8 +80,6 @@ def main(args = None):
     print("[#] - Migrate Endpoint/Server Policies:  {CONFIG_POLICIES}".format(CONFIG_POLICIES=config.get("migrate_policies")))
     print("[#] - Migrate Firewall Groups:\t\t {CONFIG_FIREWALLS}".format(CONFIG_FIREWALLS=config.get("migrate_firewall_groups")))
 
-    exit()
-
     answer = input("\n[*] - You really want to continue? [Yes / No]: ")
     if any(answer.lower() == f for f in ['no', 'n', '0']):
         print('[*] - Aborting execution!')
