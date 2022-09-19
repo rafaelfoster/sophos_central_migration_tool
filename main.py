@@ -106,19 +106,18 @@ def main(args = None):
         }
     }
 
-    # if config.get("migrate_exclusions"):
-    #     print("[*] - Migrating Exclusions as it has been set on config.ini. \n")
-    #     migration.migrate_exclusions(headers)
+    if config.get("migrate_exclusions"):
+        print("[*] - Migrating Exclusions as it has been set on config.ini. \n")
+        migration.migrate_exclusions(headers)
 
     # if config.get("migrate_firewall_groups"):
     #     print("[*] - Migrating Firewall Groups as it has been set on config.ini. \n")
     #     firewalls.migrate_groups(headers)
 
-
-    if config.get("migrate_endpoints_groups"):
-        print("[*] - Migrating computer groups.")
-        print("[!] - Note that groups from Active Directory and Azure will not be migrated! You should run Azure/AD Sync for this.")
-        migration.migrate_computer_groups(headers)
+    # if config.get("migrate_endpoints_groups"):
+    #     print("[*] - Migrating computer groups.")
+    #     print("[!] - Note that groups from Active Directory and Azure will not be migrated! You should run Azure/AD Sync for this.")
+    #     migration.migrate_computer_groups(headers)
 
     if config.get("migrate_policies"):
         print("[*] - Migrating Policies... \n")
