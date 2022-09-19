@@ -12,8 +12,6 @@ config = Config()
 
 sys.path.append('../../')
 
-# import vendors.sophos_central.sophos_central_api_config as api_conf
-
 class CentralRequest(object):
     def __init__(self) -> None:
         self.requests_count = 0
@@ -22,7 +20,6 @@ class CentralRequest(object):
     def rate_limit_control(self):
         # For future implementations
         # backoff = random_between(0, min(cap, base * (2 ** attempt)))
-
         
         adjust_time = False
         cur_request_time = datetime.now()        

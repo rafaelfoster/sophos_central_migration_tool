@@ -1,8 +1,6 @@
-# from email import header
 import os
 import json
 import requests
-# from mwt import mwt
 from vendors.sophos_central.sophos_api_connector import CentralRequest
 
 central = CentralRequest()
@@ -68,7 +66,7 @@ class Endpoint(object):
         print("[*] - Generating a list of {TYPE} from Central...".format(TYPE=type))
 
         dump_file = "./jobs/{FOLDERNAME}/{TENANT_ID}_{TYPE}.json".format(FOLDERNAME=job_folder, TENANT_ID=tenant_headers['X-Tenant-ID'], TYPE=type)
-        
+
         print("[*] - Dumping data in the {FILE} file".format(FILE=dump_file))
 
         try:

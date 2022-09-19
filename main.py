@@ -1,24 +1,15 @@
 #!/usr/bin/python3
 
 import os
-# import sys
 import json
-# import time
 import random
 import string
-# import asyncio
-# import logging
-# import requests
 import argparse
-# from mwt import mwt
-# from os import listdir
 from tokenize import endpats
 from os.path import isfile, join
-# from argparse import RawTextHelpFormatter
 from vendors.sophos_central.sophos_api_connector import Auth
 from vendors.sophos_central.sophos_migrate_endpoints import Migration
 from vendors.sophos_central.sophos_endpoints import Endpoint
-# import vendors.sophos_central.sophos_central_api_config as api_conf
 from config import Config
 
 auth = Auth()
@@ -120,6 +111,13 @@ def main(args = None):
     # if config.get("migrate_firewall_groups"):
     #     print("[*] - Migrating Firewall Groups as it has been set on config.ini. \n")
     #     firewalls.migrate_groups(headers)
+
+
+    if config.get("migrate_endpoints_groups"):
+        print("[*] - Migrating computer groups.")
+        print("[!] - Note that groups from Active Directory and Azure will not be migrated! You should run Azure/AD Sync for this.")
+        endpoints.migrate_groups(headers)
+
 
     if config.get("migrate_policies"):
         print("[*] - Migrating Policies... \n")
