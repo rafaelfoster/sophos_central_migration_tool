@@ -1,7 +1,11 @@
+# from email import header
 import os
 import json
 import requests
-from mwt import mwt
+# from mwt import mwt
+from vendors.sophos_central.sophos_api_connector import CentralRequest
+
+central = CentralRequest()
 
 class Endpoint(object):
 
@@ -12,18 +16,42 @@ class Endpoint(object):
 
     def setHeaders(self, headers):
         self.headers = headers
-    
-    def generate_ep_file(self, tenant_headers, endpoints_url):
-        print("[*] - Generating a list of endpoints from Central...")
-        endpoints_list, endpoints_ids = self.fetch_all_endpoints(tenant_headers, endpoints_url)
 
-        endpoints_file = "./jobs/%s_endpoints.json" % (tenant_headers['X-Tenant-ID'])
+    # def _exec(self, method, url, headers, params = None):
+    #     print("[*] - Starting {METHOD} on Sophos Central...".format(METHOD=method))
 
-        try:
-            os.mkdir("./jobs")
-        except:
-            pass 
+    #     try:
+    #         res = None
+    #         if method == "GET":
+    #             res = requests.get(url, headers=headers, params=params)
+    #         elif method == "POST":
+    #             res = requests.post(url, headers=headers, json=params)
+
+    #         res_code = res.status_code
+    #         res_data = res.json()
+    #         # print("[*] - HTTP Return code: %d" % (res_code))
         
+    #     except requests.exceptions.HTTPError :
+    #       pass
+
+    #     if res_code > 201:
+    #         res_users_error_code = res_data['error']
+    #         print("\n[*] - Failed to perform this task")
+    #         print("    - ERROR_CODE: %d" % (res_code))
+    #         print("    - Error message: %s" % (res_users_error_code))
+    #         print("    - URL: {URL}".format(URL=url))
+    #         print("\n*******************************************************\n")
+    #         exit()
+
+    #     elif res_code == 200 or res_code == 201:
+    #         return res_data
+   
+    def generate_ep_file(self, tenant_headers, endpoints_url, job_folder):
+        print("[*] - Generating a list of endpoints from Central...")
+        endpoints_list, endpoints_ids = self._fetch_all_endpoints(tenant_headers, endpoints_url)
+
+        endpoints_file = "./jobs/%s/origin_endpoints_%s.json" % (job_folder, tenant_headers['X-Tenant-ID'])
+
         try:
             with open(endpoints_file, 'w') as outfile:
                 json.dump(endpoints_list, outfile, indent=4)
@@ -33,10 +61,31 @@ class Endpoint(object):
 
         print("[*] - List of endpoints generated to file: {EP_FILE}".format(EP_FILE=endpoints_file))
 
-    def get_all(self, tenant_headers, endpoints_url, use_generated_file = True):
+    def _generate_dump_file(self, tenant_headers, type, data, job_folder):
+
+        # tenantFolder = tenant.TenantFolder(tenant_headers)
+
+        print("[*] - Generating a list of {TYPE} from Central...".format(TYPE=type))
+
+        dump_file = "./jobs/{FOLDERNAME}/{TENANT_ID}_{TYPE}.json".format(FOLDERNAME=job_folder, TENANT_ID=tenant_headers['X-Tenant-ID'], TYPE=type)
+        
+        print("[*] - Dumping data in the {FILE} file".format(FILE=dump_file))
+
+        try:
+            with open(dump_file, 'w') as outfile:
+                json.dump(data, outfile, indent=4)
+        except IOError:
+            print("[*] - Error while creating {TYPE} file.".format(TYPE=type))
+            return False
+
+        print("[*] - List of {TYPE}s generated in the  file: {DUMP_FILE}".format(DUMP_FILE=dump_file, TYPE=type))
+        return True
+
+    def get_all_endpoints(self, tenant_headers, src_central_dataregion, use_generated_file = True):
         
         endpoints_file = "./jobs/%s_endpoints.json" % (tenant_headers['X-Tenant-ID'])
-        if endpoints_file and use_generated_file:
+        
+        if os.path.exists(endpoints_file) and use_generated_file:
             print("[*] - Using previously generated file: %s" % (endpoints_file))
             with open(endpoints_file) as json_file:
                 endpoints_json = json.load(json_file)
@@ -44,13 +93,27 @@ class Endpoint(object):
                 for endpoint in endpoints_json:
                     endpoints_ids.append(endpoint['id'])
             return endpoints_json, endpoints_ids, "from_file"
-        
-        print("[*] - Fetching endpoints from Sophos Central")
-        endpoints_list, endpoints_ids = self.fetch_all_endpoints(tenant_headers, endpoints_url)
-        return  endpoints_list, endpoints_ids, "from_central"
-        
+        else:
 
-    def fetch_all_endpoints(self, tenant_headers, endpoints_url):
+            endpoints_url = "{DATA_REGION}/{ENDPOINTS_URI}".format(DATA_REGION=src_central_dataregion, ENDPOINTS_URI='/endpoint/v1/endpoints')    
+            
+            print("[*] - Fetching endpoints from Sophos Central")
+            endpoints_list, endpoints_ids = self._fetch_all_endpoints(tenant_headers, endpoints_url)
+            return  endpoints_list, endpoints_ids, "from_central"
+    
+    def get_all_groups(self, headers, central_dataregion, job_folder):
+        groups_list = list()
+        endpoints_groups_url = "{DATA_REGION}/{GROUPS_URI}".format(DATA_REGION=central_dataregion, GROUPS_URI="endpoint/v1/endpoint-groups")
+        groups_status, groups_data = central.get(endpoints_groups_url, headers)
+        if groups_status:
+            for x in groups_data['items']:
+                if "description" in x.keys():
+                    groups_list.append(x)
+            self._generate_dump_file(headers, "groups", groups_data, job_folder)
+            return groups_list
+
+
+    def _fetch_all_endpoints(self, tenant_headers, endpoints_url):
         params_data = {}
         params_data["pageTotal"] = True
         # params_data["pageSize"]  = 2
@@ -60,7 +123,6 @@ class Endpoint(object):
             params_data["pageFromKey"] = pageKey
 
             try:
-                
                 res_endpoints = requests.get(endpoints_url, headers=tenant_headers, params=params_data)
                 res_endpoints_code = res_endpoints.status_code
                 endpoints_data = res_endpoints.json()
@@ -73,7 +135,7 @@ class Endpoint(object):
                 for objEndpoint in endpoints_data['items']:
                     Endpoints_Dict = {}
                     Endpoints_Dict['id'] = objEndpoint['id']
-                    Endpoints_Dict['type'] = objEndpoint['type']
+                    Endpoints_Dict['TYPE'] = objEndpoint['type']
                     Endpoints_Dict['hostname'] = objEndpoint['hostname']
 
                     self._endpoints_list.append(Endpoints_Dict)
