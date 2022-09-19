@@ -14,7 +14,7 @@ Após baixar esta ferramenta, use pip para instalar dependências usando o segui
 
 ## Como uso o Sophos Central Migration Tool?
 
-Em primeiro lugar, renomeie o credenciais.ini.default para credenciais.ini.
+Primeiro, vá para a pasta **/config** e renomeie o **credentials.ini.default** para **credentials.ini**.
 Crie credenciais Client ID e Client SECRET para instâncias centrais de **origem** e **destino** e defina-as no arquivo credenciais.ini.
 
 As chaves de credenciais devem ser criadas com direitos de "Super Administrador principal de serviço", caso contrário, você receberá uma mensagem "Proibido" como retorno.
@@ -25,9 +25,19 @@ https://docs.sophos.com/central/Customer/help/en-us/central/Customer/tasks/ep_AP
 
 Habilite a migração no Sophos Central em Global Settings > Endpoint Migrations e defina uma data de expiração (recomendado).
 
-Você pode então executar esta ferramenta.
+Na mesma pasta, agora há um arquivo chamado **config.ini**. Você terá algumas opções para isso.
+O mais importante são as configurações de qual tipo de migração você deseja permitir.
+Opções disponíveis hoje:
+  - Migrando endpoints
+  - Migração de grupos de computadores
+  - Políticas de migração
+  - Migrando Exclusões Globais
+  - Migração de grupos de firewall (uso futuro)
+  - Pasta do trabalho padrão
 
-Esta ferramenta contém as principais opções:
+Então você estará pronto para executar esta ferramenta.
+
+Esta ferramenta contém alguns parâmetros de linha de comando, como:
 
 * *-h*: mostra a mensagem de ajuda
 * *-l/--list-jobs*: lista todas tarefas criadas no Tenant de destino
