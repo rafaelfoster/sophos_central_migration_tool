@@ -59,6 +59,9 @@ class CentralRequest(object):
 
     def insert(self, url, headers, params = None):
         return self._exec("POST", url, headers, params)
+   
+    def put(self, url, headers, params = None):
+        return self._exec("PUT", url, headers, params)
 
     def update(self, url, headers, params = None):
         return self._exec("PATCH", url, headers, params)
@@ -75,8 +78,9 @@ class CentralRequest(object):
             # Requesting rate limit control
             self.rate_limit_control()
 
-            print("[*] - Starting {METHOD} request on Sophos Central...".format(METHOD=method))
-            print("[*] - Sophos Central Tenant: {TENANT}".format(TENANT=headers['X-Tenant-ID']))
+            if config.get("debug"):
+                print("[*] - Starting {METHOD} request on Sophos Central...".format(METHOD=method))
+                print("[*] - Sophos Central Tenant: {TENANT}".format(TENANT=headers['X-Tenant-ID']))
 
             # print(json.dumps(headers, indent=4))
             # print(json.dumps(params, indent=4))
@@ -93,9 +97,11 @@ class CentralRequest(object):
                     res = requests.post(url, headers=headers, json=params)
                 elif method == "PATCH":
                     res = requests.patch(url, headers=headers, json=params)
+                elif method == "PUT":
+                    res = requests.put(url, headers=headers, json=params)
                 else:
-                    print("[*] - Method not found")
-                    print("[*] - Aborting execution.")
+                    print("[!] - Method not found")
+                    print("[!] - Aborting execution.")
                     exit()
 
                 res_code = res.status_code
@@ -106,24 +112,28 @@ class CentralRequest(object):
                 pass
 
             if res_code == 429:
-                print("\n[*] - Failed to perform this task")
-                print("    - HTTP Code: %d"     % (res_code))
-                print("    - Error message: %s" % (res_data['message']))
+                print("\n[!] - Failed to perform this task")
+                print("    - Rate limit reached.")
                 print("    - Please check KB: https://developer.sophos.com/intro#rate-limits")
-                print("[*] - Waiting 10 seconds after trying again...")
+                print("[-] - Waiting 30 seconds after trying again...")
+                if config.get("debug"):
+                    print("    - HTTP Code: %d"     % (res_code))
+                    print("    - Error message: %s" % (res_data['message']))
                 sleep(30)
             elif res_code > 201:
-                print(res_data)
+                # print(res_data)
                 res_users_error_code = res_data['error']
                 res_data['status_code'] = res_code
-                print("\n[*] - Failed to perform this task")
+                print("\n[!] - Failed to perform this task")
                 print("    - HTTP Code: %d"     % (res_code))
-                print("    - Error Code: %s"    % (res_users_error_code))
                 print("    - Error message: %s" % (res_data['message']))
-                print("    - URL: {URL}".format(URL=url))
-                print("\n*******************************************************\n")
-                print(json.dumps(res_data, indent=4))
-                print("\n*******************************************************\n")
+                
+                if config.get("debug"):
+                    # print("\n*******************************************************\n")
+                    print("    - Error Code: %s"    % (res_users_error_code))
+                    print("    - URL: {URL}".format(URL=url))
+                    print(json.dumps(res_data, indent=4))
+                    print("\n*******************************************************\n")
                 # exit(1)
                 return False, res_data
             elif res_code == 200 or res_code == 201:

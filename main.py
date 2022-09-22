@@ -61,19 +61,26 @@ def create_job_folder():
     print("[*] - Job folder created at: {JOBFOLDER}\n".format(JOBFOLDER=job_folder))
     return job_folder
 
-def write_json(data, type, tenant_id = None):
-    path = "curdir"
-    filename = "%s_%s.json" % (tenant_id, type)
-    file = '%s/%s/%s' % (path, job_folder, filename) 
-    
+def write_json(data, job_folder, type):
+
+    path = os.getcwd()
+    path = path + "/" + config.get("jobs_folder")
+    os.chdir(path)
+    os.chdir(job_folder)
+    filename = "%s.json" % (type)
+
     try:
-        with open(file, 'w') as outfile:
+        with open(filename, 'w') as outfile:
             json.dump(data, outfile, indent=4)
 
     except IOError:
-        print("[*] - Error while creating %s file." % (filename))
-    
-    return file
+        print("[!] - Error while creating %s file." % (filename))
+        print("[!] - Error: " )
+        print(IOError.strerror)
+        print(IOError.errno)
+
+    os.chdir("../..")
+    return filename
 
 def main(args = None):
     print("[*] - Checking config.ini settings...")
@@ -82,7 +89,7 @@ def main(args = None):
     print("[#] - Migrate computer groups:\t\t {CONFIG_EP_GROUPS}".format(CONFIG_EP_GROUPS=config.get("migrate_endpoints_groups")))
     print("[#] - Migrate Exclusions:\t\t {CONFIG_EXCLUSIONS}".format(CONFIG_EXCLUSIONS=config.get("migrate_exclusions")))
     print("[#] - Migrate Endpoint/Server Policies:  {CONFIG_POLICIES}".format(CONFIG_POLICIES=config.get("migrate_policies")))
-    print("[#] - Migrate Firewall Groups:\t\t {CONFIG_FIREWALLS}".format(CONFIG_FIREWALLS=config.get("migrate_firewall_groups")))
+    # print("[#] - Migrate Firewall Groups:\t\t {CONFIG_FIREWALLS}".format(CONFIG_FIREWALLS=config.get("migrate_firewall_groups")))
 
     answer = input("\n[?] - You really want to continue? [Yes / No] (Default: Yes): ")
     if any(answer.lower() == f for f in ['no', 'n', '0']):
@@ -91,7 +98,7 @@ def main(args = None):
     print("\n[*] - User confirmed. Continuing to create a new Migration Job.")
 
     job_folder = create_job_folder()
-
+    print("\n")
     source_headers, source_central_dataregion = auth.get_headers("source_sophos_central")
     dst_header, dst_central_dataregion = auth.get_headers("destination_sophos_central")
     
@@ -105,7 +112,7 @@ def main(args = None):
             "region": dst_central_dataregion
         }
     }
-
+    
     if config.get("migrate_exclusions"):
         print("[*] - Migrating Exclusions as it has been set on config.ini. \n")
         migration.migrate_exclusions(headers)
@@ -122,28 +129,17 @@ def main(args = None):
     if config.get("migrate_policies"):
         print("[*] - Migrating Policies... \n")
         migration_policy_status = migration.migrate_policies(headers)
-  
+    
     if config.get("migrate_endpoints"):
         print("[*] - Migrating Endpoints... \n")
 
         print("[*] - Getting list of endpoints from Source tenant")
-        endpoints_list, endpoints_ids, source_data = endpoints.get_all_endpoints( headers['source']['headers'], headers['source']['region'])
+        endpoints_list, endpoints_ids, source_data = endpoints.get_all_endpoints( headers['source'], job_folder )
         
         if source_data == "from_file":
             print("\n")
-            next_ep_id = ""
-            current = 0
-            for endpoint in endpoints_list:
-                if next_ep_id is endpoint['id']: continue
-                current += 1
-                next_endpoint = endpoints_list[current]
-                next_ep_id = next_endpoint['id']
-                print("Hostname: {:<30} Hostname:{:^5}".format(endpoint['hostname'],next_endpoint['hostname']))
-                print("{:<40} {:^10}".format(endpoint['id'],next_endpoint['id']))
-                current += 1
-                print("\n")
 
-            print("\n[*] - Endpoints in the list will be migrated.\n")
+            print("\n[*] - {COUNT} endpoint(s) in the list will be migrated.\n".format(COUNT=len(endpoints_list)))
             print("\t[0] - Yes, continue with this list. ")
             print("\t[1] - Migrate ALL endpoints from Central (ignore this list).")
             print("\t[2] - Abort execution.")
@@ -156,16 +152,19 @@ def main(args = None):
                 print("\n[*] - Migrating all endpoints from Central.")
                 endpoints_list, endpoints_ids, source_data = endpoints.get_all_endpoints( src_headers, Endpoints_URL, False)
 
-        migration_job = migration.create_job(endpoints_ids, endpoints_list, src_headers['X-Tenant-ID'], dst_header, dst_central_dataregion)
+        migration_job = migration.create_job(endpoints_ids, endpoints_list, headers)
+
+        if config.get("debug"):
+            print(json.dumps(migration_job, indent=4))
 
         if migration_job:
-            start_migration_job = migration.start_job(src_headers, src_central_dataregion, migration_job['id'], endpoints_ids, migration_job['token'])
+            start_migration_job = migration.start_job(headers, migration_job['job_id'], endpoints_ids, migration_job['token'])
             if start_migration_job:
                 migration_data = dict()
                 migration_data['Source_Tenant']      = start_migration_job
                 migration_data['Destination_Tenant'] = migration_job
                 
-                job_file = write_json(migration_data, "job", src_headers['X-Tenant-ID'])
+                job_file = write_json(migration_data, job_folder, "migration_job" )
                 if job_file: 
                     print("[*] - File with Job information created at: %s" % (job_file) )
                     exit(0)
@@ -190,9 +189,15 @@ if __name__ == "__main__":
         migration.status(dst_headers, dst_centralregion, args.status)
     elif args.endpoint_file:
         src_headers, src_centralregion = auth.get_headers("source_sophos_central")
+        headers = {
+            'source': {
+                'headers': src_headers,
+                'region': src_centralregion
+            } 
+        }
         # Endpoints_URL = "{DATA_REGION}/{ENDPOINTS_URI}".format(DATA_REGION=src_centralregion, ENDPOINTS_URI=endpoints_uri)
         job_folder = create_job_folder()
-        endpoints.generate_ep_file(src_headers, job_folder)
+        endpoints.generate_ep_file(headers, job_folder)
     elif args.list_jobs:
         migration.list_jobs()
     else:

@@ -2,25 +2,28 @@ import os
 import json
 from time import sleep
 from os.path import isfile, join
+from config import Config
 from config import ignore_policy_settings
 from vendors.sophos_central.sophos_api_connector import CentralRequest
 
+config = Config()
 central = CentralRequest()
 
 class Migration(object):
 
-    def create_job(self, endpoints_ids, endpoints_list, from_tenant, headers, central_dataregion):
-        
-        print("[*] - Creating migration job from tenant: %s" % (from_tenant))
+    def create_job(self, endpoints_ids, endpoints_list, headers):
+    # def create_job(self, endpoints_ids, endpoints_list, from_tenant, headers, central_dataregion):
+        print("[*] - Creating migration job from tenant: %s" % (headers['source']['headers']['X-Tenant-ID']))
+        # create_job(endpoints_ids, endpoints_list, headers)
         
         migrate_json = {
-            "fromTenant": from_tenant,
+            "fromTenant": headers['source']['headers']['X-Tenant-ID'],
             "endpoints": endpoints_ids
         }
 
-        migration_url = "{DATA_REGION}/{MIGRATION_URI}".format(DATA_REGION=central_dataregion, MIGRATION_URI="endpoint/v1/migrations")
+        migration_url = "{DATA_REGION}/{MIGRATION_URI}".format(DATA_REGION=headers['destination']['region'], MIGRATION_URI="endpoint/v1/migrations")
         
-        job_status, res_data = self._exec("POST", migration_url, headers, migrate_json)
+        job_status, res_data = central.insert(migration_url, headers['destination']['headers'], migrate_json)
         
         # try:
         #     res = requests.post(migration_url, headers=headers, json=migrate_json)
@@ -61,18 +64,19 @@ class Migration(object):
 
             return migrate_json
 
-    def start_job(self, headers, central_dataregion, migration_id, endpoints_ids, token):
+    # def start_job(self, headers, central_dataregion, migration_id, endpoints_ids, token):
+    def start_job(self, headers, migration_id, endpoints_ids, token):
         print("[*] - Starting last created job: %s" % (migration_id))
-     
+
         params_data = {
             "id": migration_id,
             "token": token,
             "endpoints": endpoints_ids
         }
-        
-        migration_url = "{DATA_REGION}/{MIGRATION_URI}/{MIGRATION_ID}".format(DATA_REGION=central_dataregion, MIGRATION_URI="endpoint/v1/migrations", MIGRATION_ID=migration_id)
 
-        job_status, job_data = self._exec("PUT", migration_url, headers, params_data)
+        migration_url = "{DATA_REGION}/{MIGRATION_URI}/{MIGRATION_ID}".format(DATA_REGION=headers['source']['region'], MIGRATION_URI="endpoint/v1/migrations", MIGRATION_ID=migration_id)
+        
+        job_status, job_data = central.put(migration_url, headers['source']['headers'], params_data)
         if job_status:
             return job_data
 
@@ -93,16 +97,6 @@ class Migration(object):
             migration_url = "{DATA_REGION}/{MIGRATION_URI}".format(DATA_REGION=central_dataregion, MIGRATION_URI="endpoint/v1/migrations")
 
         migration_data = self._exec("GET", migration_url, headers)
-
-        # print(json.dumps(res_data, indent=4))
-
-        #  tenant_path = self.tenant_path(headers['X-Tenant-ID'])
-
-        # policies_json = "%s/%s_policies.json" % (path, headers['X-Tenant-ID'])   
-
-        # with open(policies_json, 'w') as outfile:
-        #     json.dump(res_data, outfile, indent=4)
-    
 
         if migration_id:
             tenant_path = self.tenant_path(headers['X-Tenant-ID'])
@@ -148,26 +142,29 @@ class Migration(object):
 
         for type_url in migration_type:
             type_url = "endpoint/v1/settings/" + type_url
-            print("\n\n[*] - Getting settings for " + type_url)
             src_setting_url = "{DATA_REGION}/{SETTING_URI}".format(DATA_REGION=headers['source']['region'], SETTING_URI=type_url)
             dst_setting_url = "{DATA_REGION}/{SETTING_URI}".format(DATA_REGION=headers['destination']['region'], SETTING_URI=type_url)
-            print("[*] - URL: " + src_setting_url)
+            
+            if config.get("debug"): 
+                print("\n\n[*] - Getting settings for " + type_url)
             status, data = central.get(src_setting_url, headers['source']['headers'])
 
             if status:
                 # ignored_types = ['detectedExploit', 'behavioral']
-
                 # exclusion_count = 0
 
                 for exclusion in data['items']:
-                    print("*******************")
-                    print(json.dumps(exclusion, indent=4))
+
+                    if config.get("debug"):
+                        print("*******************")
+                        print(json.dumps(exclusion, indent=4))
+
                     exclusion_dict = dict()
 
                     for key in exclusion.keys():
                         if key == "id": continue
                         exclusion_dict[key] = exclusion[key]
-                
+
                     #  if "comment" in exclusion.keys(): exclusion_dict["comment"] = exclusion['comment']
                     # if "scanmode" in exclusion.keys(): exclusion_dict["scanMode"] = exclusion['scanMode']
                     # if "description" in exclusion.keys(): exclusion_dict["description"] = exclusion['description']
@@ -175,9 +172,9 @@ class Migration(object):
                     # print(exclusion_dict)
                     send_exclusion_status, send_exclusion_data = central.insert(dst_setting_url, headers['destination']['headers'], exclusion_dict)
                     if send_exclusion_status:
-                        print("[!] - Creating exclusion for {migration_type} success!".format(migration_type=migration_type))
+                        print("[!] - Creating exclusion for {migration_type} success!".format(migration_type=type_url ))
                     else:
-                        print("[-] - Could not create exclusions for {migration_type}".format(migration_type=migration_type))
+                        print("[-] - Could not create exclusions for {migration_type}".format(migration_type=type_url))
 
     def get_policies(self, headers):
         
@@ -201,43 +198,29 @@ class Migration(object):
 
         for policy in src_policies['items']:
 
-            if policy['name'] != "CRYPTOGUARD-POC":
-                continue
+            if config.get("debug"):
+                print(json.dumps(policy['settings'], indent=4))
+                print("\n --------------- \n\n")
 
-            if policy['type'] != "threat-protection":
-                continue
-
-            # print(json.dumps(policy['settings'], indent=4))
-            # print("\n --------------- \n\n")
-
-            # if policy['type'] == "threat-protection":
             policy_settings = policy['settings']
 
             if policy['type'] in ["threat-protection", "server-threat-protection"]:
-
+                print("\n")
                 for remove_setting in ignore_policy_settings[policy['type']]: 
-                    print("removing setting: " + remove_setting)
+                    print("[-] - Removing read-only setting: " + remove_setting)
                     policy_settings.pop(remove_setting)
+                print("\n")
 
                 # print(json.dumps(policy['settings'], indent=4))
 
                 for setting in policy_settings: 
                     # print("removing recommended setting: " + setting)
                     policy_settings[setting].pop("recommendedValue", None)
-                
-                # print("\n Listing exclusions....")
-                # for exclusions in policy['settings']["endpoint.threat-protection.exclusions.scanning"]['value']:
-                #     print("\n\n - exclusion type: " + exclusions['type'])
-                #     print(" - exclusion name: " + exclusions['value'])
-                #     if exclusions['type'] == "detectedExploit":
-                #         print(' - Deleting detectedExploit ' + exclusions['value'])
-                #         print(type(policy_settings["endpoint.threat-protection.exclusions.scanning"]['value']))
-                #         policy_settings["endpoint.threat-protection.exclusions.scanning"]['value'].pop(exclusions)
-                #         print("-----------\n")
 
                 scanning_exclusions = [x for x in policy['settings']["endpoint.threat-protection.exclusions.scanning"]['value'] if not ("detectedExploit" == x.get('type'))]
                 policy_settings["endpoint.threat-protection.exclusions.scanning"]['value'] = scanning_exclusions
-                print(json.dumps(policy_settings, indent=4))
+                if config.get("debug"):
+                    print(json.dumps(policy_settings, indent=4))
 
             if policy['name'] == "Base Policy":
                 policy_content = {
@@ -252,10 +235,11 @@ class Migration(object):
                     'priority' : policy['priority'],
                     'settings' : policy_settings
                 }
+            
+            if config.get("debug"):
+                print(json.dumps(policy_settings, indent=4))
 
-            print(json.dumps(policy_settings, indent=4))
-
-            if policy['name'] == "Base Policy":
+            if ['name'] == "Base Policy":
                 print("[*] - Updating Base Policy for {POLICYTYPE}".format(POLICYTYPE=policy['type']))
                 base_policy_url = "/{POLICYTYPE}/base".format(POLICYTYPE=policy['type'])
                 url = policies_url + "" + base_policy_url
@@ -265,33 +249,44 @@ class Migration(object):
                 status, data = central.insert(policies_url, headers['destination']['headers'], policy_content)
 
             if not status:
-                print("[!] - Error while creating policy {POLICYNAME}".format(POLICYNAME=policy_content['name']))
+                print("[!] - Error while creating policy {POLICYNAME}".format(POLICYNAME=policy['name']))
 
 
     def migrate_computer_groups(self, headers):
-        print("[!] - Migrate computer groups function is current under development right now!\nPlease come back later...")
-        exit()
+        # print("[!] - Migrate computer groups function is current under development right now!\nPlease come back later...")
+        # exit()
         print("[*] - Function: Migrate computer groups")
 
         src_endpoints_groups_url = "{DATA_REGION}/{GROUPS_URI}".format(DATA_REGION=headers['source']['region'], GROUPS_URI="endpoint/v1/endpoint-groups")
         groups_status, source_computers_groups = central.get(src_endpoints_groups_url, headers['source']['headers'])
+        if not groups_status:
+            print("\n[!] - Could not get groups from source instance.")
+            print("[!] - Error Code: %d" % (source_computers_groups['status_code']) )
+            return False
 
         endpoints_groups_url = "{DATA_REGION}/{GROUPS_URI}".format(DATA_REGION=headers['destination']['region'], GROUPS_URI="endpoint/v1/endpoint-groups")
 
         created_groups = list()
 
-        for group in source_computers_groups:
+        for group in source_computers_groups['items']:
+            if "description" not in group.keys(): 
+                if config.get("debug"):
+                    print("[~] - DEBUG: Ignoring AD Group: " + group['name'])
+                continue
 
             group_dict = {
                 "name": group['name'],
-                "type": group['type'],
+                "type": group['type']
             }
-
             if len(group['description']) != 0: group_dict['description'] = group['description']
 
+            print("[*] - Creating computer group: " + group['name'])
             groups_status, groups_data = central.insert(endpoints_groups_url, headers['destination']['headers'], group_dict)
             if groups_status:
-                print(json.dumps(groups_data, indent=4))
+                if config.get("debug"):
+                    print(json.dumps(groups_data, indent=4))
                 created_groups.append(groups_data)
+            else:
+                print("\n[!] - Error while creating group %s\n" % (group['name']))
 
         return created_groups
