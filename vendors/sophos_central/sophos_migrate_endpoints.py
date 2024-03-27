@@ -11,6 +11,9 @@ central = CentralRequest()
 
 class Migration(object):
 
+    def __init__(self) -> None:
+        self.DEFAULT_JOBS_FOLDER = './jobs/'
+
     def create_job(self, endpoints_ids, endpoints_list, headers):
     # def create_job(self, endpoints_ids, endpoints_list, from_tenant, headers, central_dataregion):
         print("[*] - Creating migration job from tenant: %s" % (headers['source']['headers']['X-Tenant-ID']))
@@ -82,12 +85,12 @@ class Migration(object):
 
     def list_jobs(self):
         listdir = ""
-        job_files = [f for f in listdir("./jobs/") if isfile(join("./jobs/", f))]
+        job_files = [f for f in listdir(self.DEFAULT_JOBS_FOLDER) if isfile(join(self.DEFAULT_JOBS_FOLDER, f))]
 
         for job_id in job_files:
             print("[%d] - %s" % (job_files.index(job_id), job_id.split(".")[0]))
 
-    def status(self,headers, central_dataregion, migration_id = ""):
+    def status(self, headers, central_dataregion, src_tenant, migration_id = ""):
 
         print("[*] - Function: Get job status")
 
@@ -96,21 +99,31 @@ class Migration(object):
         else:
             migration_url = "{DATA_REGION}/{MIGRATION_URI}".format(DATA_REGION=central_dataregion, MIGRATION_URI="endpoint/v1/migrations")
 
-        migration_data = self._exec("GET", migration_url, headers)
+        migration_data = central.get(migration_url, headers)
+        # print(json.dumps(migration_data, indent=4))
 
+        endpoints_file = None
+        for folder, subs, files in os.walk(self.DEFAULT_JOBS_FOLDER):
+            for filename in files:
+                if src_tenant in filename:
+                    endpoints_file = f'{folder}/{filename}'
+                    break
+        
         if migration_id:
-            tenant_path = self.tenant_path(headers['X-Tenant-ID'])
-            migration_file = "%s/%s.json" % (tenant_path, migration_id)
 
+            # if endpoints_file:
+
+            job_endpoints = None
             try:
                 print('[*] - Job file exists... Getting data...')
-                with open(migration_file) as json_file:
-                    migration_json = json.load(json_file)
+                with open(endpoints_file, 'r') as json_file:
+                    job_endpoints = json.load(json_file)
 
-                job_endpoints = migration_json['endpoints']
+                # job_endpoints = migration_json['endpoints']
                 
             except:
                 pass
+            print(job_endpoints)
 
             print("[*] - Getting job status of Job ID: %s" % (migration_id) )
             print("\n========================================================================")
@@ -120,7 +133,7 @@ class Migration(object):
                         endpoint = next((item for item in job_endpoints if item['id'] == migration_status['id']), "HOSTNAME_NOT_FOUND" )
                         print("Endpoint:\t %s" % ( endpoint['hostname'].title() ) )
                 except:
-                    pass 
+                    pass
 
                 print("Endpoint ID:\t %s" % (migration_status['id']) )
                 print("Status:\t\t %s" % (migration_status['status']) )
@@ -235,6 +248,9 @@ class Migration(object):
                     'priority' : policy['priority'],
                     'settings' : policy_settings
                 }
+            # print("DUMPING POLICY OBJECT")
+            # print(json.dumps(policy))
+            # print(json.dumps(policy_content))
             
             if config.get("debug"):
                 print(json.dumps(policy_settings, indent=4))
