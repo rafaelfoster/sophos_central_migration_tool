@@ -90,7 +90,7 @@ class Endpoint(object):
             print("[*] - Using previously generated file: %s" % (endpoints_file))
             with open(endpoints_file) as json_file:
                 endpoints_json = json.load(json_file)
-                endpoints_ids  = []
+                endpoints_ids  = []9
                 for endpoint in endpoints_json:
                     endpoints_ids.append(endpoint['id'])
             return endpoints_json, endpoints_ids, "from_file"
@@ -124,7 +124,7 @@ class Endpoint(object):
             params_data["pageFromKey"] = pageKey
 
             try:
-                res_endpoints = requests.get(endpoints_url, headers=headers, params=params_data)
+                res_endpoints = requests.get(endpoints_url, headers=headers['source']['headers'], params=params_data)
                 res_endpoints_code = res_endpoints.status_code
                 endpoints_data = res_endpoints.json()
 
