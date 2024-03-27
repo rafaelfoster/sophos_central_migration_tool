@@ -90,7 +90,7 @@ class Endpoint(object):
             print("[*] - Using previously generated file: %s" % (endpoints_file))
             with open(endpoints_file) as json_file:
                 endpoints_json = json.load(json_file)
-                endpoints_ids  = []9
+                endpoints_ids  = []
                 for endpoint in endpoints_json:
                     endpoints_ids.append(endpoint['id'])
             return endpoints_json, endpoints_ids, "from_file"
