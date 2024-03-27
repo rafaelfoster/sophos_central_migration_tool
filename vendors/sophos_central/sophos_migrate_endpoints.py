@@ -245,7 +245,7 @@ class Migration(object):
                 url = policies_url + "" + base_policy_url
                 status, data = central.update(url, headers['destination']['headers'], policy_content)
             else:
-                print("[*] - Creating a new {POLICYTYPE} policy: {POLICYNAME} ".format(POLICYTYPE=policy_content['type'], POLICYNAME=policy_content['name']))
+                print("[*] - Creating a new {POLICYTYPE} policy: {POLICYNAME} ".format(POLICYTYPE=policy['type'], POLICYNAME=policy['name']))
                 status, data = central.insert(policies_url, headers['destination']['headers'], policy_content)
 
             if not status:
